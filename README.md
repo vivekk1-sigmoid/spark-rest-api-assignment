@@ -1,4 +1,4 @@
-## Python Spark Assignment by Shivam Raj
+## Python Spark Assignment by Vivek Kumar
 
 ### Tech Stack:
 - Flask for REST API
