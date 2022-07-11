@@ -18,6 +18,7 @@ def hello_world():
 
 # On each of the days find which stock has moved maximum %age wise in both directions (+ve, -ve)
 # Code can be improvised and can be more concise
+# Can also use window function
 @app.route('/movement')
 def stock_max_movement():
     query1 = "select High, Low, Volume, Date, stock_name, ((Close - Open)/Close)*100 as Percent from stocks"
@@ -64,6 +65,7 @@ def max_min_gap_in_stock_price():
 
 # 4th
 # Which stock has moved maximum from 1st Day data to the latest day
+# Can also use temp view to create temporary view of table
 @app.route("/maximum_movement")
 def max_movement_from_first_day_to_last_day():
     query = "select distinct stock_name, abs((first_value(Open) over (partition by stock_name order by Date asc) - first_value(Close) over (partition by stock_name order by Date desc))) as diff from stocks "
