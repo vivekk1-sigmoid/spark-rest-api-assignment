@@ -19,16 +19,32 @@ def hello_world():
 # On each of the days find which stock has moved maximum %age wise in both directions (+ve, -ve)
 @app.route('/movement')
 def stock_max_movement():
-    pass
+    query1 = "select High, Low, Volume, Date, stock_name, ((Close - Open)/Close)*100 as Percent from stocks"
+    pdf = spark.sql(query1)
 
+    pdf.createOrReplaceTempView("new_table")
+
+    query2 = "SELECT mt.stock_name as min_stock, mt.Date, mt.Percent as minPerc FROM new_table mt INNER JOIN (SELECT Date, MIN(Percent) AS MinPercent FROM new_table GROUP BY Date) t ON mt.Date = t.Date AND mt.Percent = t.MinPercent"
+
+    query3 = "SELECT mt.stock_name as max_stock, mt.Date, mt.Percent as maxPerc FROM new_table mt INNER JOIN (SELECT Date, MAX(Percent) AS MinPercent FROM new_table GROUP BY Date) t ON mt.Date = t.Date AND mt.Percent = t.MinPercent"
+
+    new_pdf = spark.sql(query2)
+    new_pdf.createOrReplaceTempView("t1")
+
+    new_pdf1 = spark.sql(query3)
+    new_pdf1.createOrReplaceTempView("t2")
+    query4 = "select t1.Date,t1.min_stock,t1.minPerc,t2.max_stock,t2.maxPerc from t1 join t2 on t1.Date = t2.Date"
+    df = spark.sql(query4)
+    return jsonify(json.loads(df.toPandas().to_json(orient="table",index=False)))
 
 # 2nd
 # Which stock was most traded stock on each day
 @app.route("/max_traded_stock")
 def most_traded_stock():
-    df = spark.sql("select t1.* from `stocks` t1 join ( select Date, Max(Volume) AS max_volume from `stocks` Group By Date) t2 on t1.Date = t2.Date and t1.Volume = t2.max_volume ")
-    data = df.select('*').rdd.flatMap(lambda x: x).collect()
-    return jsonify({'Data': data})
+    df = spark.sql("select t1.stock_name, t1.Volume, t1.Date from `stocks` t1 join ( select Date, Max(Volume) AS max_volume from `stocks` Group By Date) t2 on t1.Date = t2.Date and t1.Volume = t2.max_volume ")
+    # data = df.select('*').rdd.flatMap(lambda x: x).collect()
+    # return jsonify({'Data': data})
+    return jsonify(json.loads(df.toPandas().to_json(orient="table", index=False)))
 
 
 # 3rd
@@ -36,9 +52,10 @@ def most_traded_stock():
 # from the previous day close price I.e. (previous day close - current day open price )
 @app.route("/max_min_gap")
 def max_min_gap_in_stock_price():
-    new_table = spark.sql(" SELECT Date,company,Open,Close , Close - LAG(Open,1,NULL) OVER (PARTITION BY company ORDER BY Date) as gap FROM stocks")
-    new_table.createOrReplaceTempView("max_min_table")
-    query = "select company, min(gap),max(gap) from max_min_table group by company"
+    # new_table = spark.sql(" SELECT Date,company,Open,Close , Close - LAG(Open,1,NULL) OVER (PARTITION BY company ORDER BY Date) as gap FROM stocks")
+    # new_table.createOrReplaceTempView("max_min_table")
+    query = "SELECT stock_name, Date, Open, Close , Close- LAG(Open, 1, null) OVER (PARTITION BY stock_name ORDER BY Date) " \
+            "as diff FROM stocks "
     df = spark.sql(query)
     data = df.select('*').rdd.flatMap(lambda x: x).collect()
     return jsonify({'Data': data})
@@ -48,8 +65,12 @@ def max_min_gap_in_stock_price():
 # Which stock has moved maximum from 1st Day data to the latest day
 @app.route("/maximum_movement")
 def max_movement_from_first_day_to_last_day():
-    query = "select distinct company, abs(first_value(Open) over(partition by company order by Date)- first_value(close) over(partition by company order by Date desc) )as maximum_movement from stocks"
-    df = spark.sql(query)
+    query = "select distinct stock_name, abs((first_value(Open) over (partition by stock_name order by Date asc) - first_value(Close) over (partition by stock_name order by Date desc))) as diff from stocks "
+    pdf = spark.sql(query)
+    pdf.createOrReplaceTempView("max_table")
+    query2 = "select stock_name, diff from max_table order by diff desc limit(1)"
+    new_pdf = spark.sql(query2)
+    df = spark.sql(new_pdf)
     data = df.select('*').rdd.flatMap(lambda x: x).collect()
     return jsonify({'Data': data})
 
