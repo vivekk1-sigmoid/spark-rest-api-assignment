@@ -51,7 +51,6 @@ def most_traded_stock():
 # 3rd
 # Which stock had the max gap up or gap down opening
 # from the previous day close price I.e. (previous day close - current day open price )
-# Modify the code to get the correct output, especially focus on how to retrieve monday data
 @app.route("/max_min_gap")
 def max_min_gap_in_stock_price():
     # new_table = spark.sql(" SELECT Date,company,Open,Close , Close - LAG(Open,1,NULL) OVER (PARTITION BY company ORDER BY Date) as gap FROM stocks")
