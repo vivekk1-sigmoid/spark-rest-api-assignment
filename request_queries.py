@@ -17,6 +17,7 @@ def hello_world():
 
 
 # On each of the days find which stock has moved maximum %age wise in both directions (+ve, -ve)
+# Code can be improvised and can be more concise
 @app.route('/movement')
 def stock_max_movement():
     query1 = "select High, Low, Volume, Date, stock_name, ((Close - Open)/Close)*100 as Percent from stocks"
